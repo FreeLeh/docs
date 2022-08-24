@@ -40,6 +40,29 @@ A few important implementation details to take note.
 
 ## [`Serve`](https://www.withserve.com/)
 
+`Serve` has a backend server as a proxy.
+
+1. It only provides hosted backend option (currently it seems it is provided for free as of 24 August 2022).
+2. It provides integrations with many data storages, not just Google Sheets (e.g. Airtable, MySQL, PostgreSQL, etc.).
+3. There is no official client library provided, all REST APIs provided must be called manually.
+
+> Although `Serve` provides integrations with many different data storages, we are going to just
+> focus on the Google Sheet capabilities.
+
+This project provides the following operations for Google Sheet.
+
+1. Retrieve all rows.
+2. Insert new rows.
+3. Update rows.
+4. Delete rows.
+
+A few important implementation details to take note.
+
+1. Retrieving rows must include all rows. It does not support filtering, offsetting, or limiting.
+2. No batch row insertion support as of 24 August 2022.
+3. A row can only be updated as a full row (cannot update only selected columns).
+4. If we want to update or delete a row, we must provide the row index.
+
 ## [`SheetDB`](https://sheetdb.io/)
 
 ## [`sheetsql`](https://github.com/joway/sheetsql)
