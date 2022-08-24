@@ -1,4 +1,4 @@
-# Alternatives
+# Alternatives Analysis
 
 There are a few notable other alternatives that we believe are aiming to do something similar as `FreeDB`.
 We would like to try our best to summarise how these other alternatives work and how it compares with `FreeDB`.
@@ -13,15 +13,42 @@ We would like to try our best to summarise how these other alternatives work and
 * [`gooss`](#gooss).
 * [`drive-db`](#drive-db) (deprecated).
 
-# Summary
+## Why should you choose `FreeDB`?
 
-**Here is the `tl;dr` version**. Please read further for more details.
+Here is a quick summary of `FreeDB` compared to other available alternatives.
 
-1. Most 
+1. We **do not need any backend server** at all.
+   - We aim for the minimum setup to use Google Sheets as your database.
 
-TODO(edocsss): need to mention that all implementations are good in terms of readability + leveraging Google Sheets capabilities.
 
----------------------
+2. All of our codes and protocols are [**available on GitHub**](https://github.com/FreeLeh).
+   - Some alternatives do not share their codes publicly.
+   - We publish the language agnostic protocols. This allows anyone to extend it to other languages as needed.
+
+
+3. Conditions for retrieval, update, and deletion are more flexible.
+   - We are using Google Sheets `=QUERY()` function.
+   - We can handle [all supported conditions](https://developers.google.com/chart/interactive/docs/querylanguage#where) by `=QUERY()` function.
+
+
+4. Computations are all done through the Google Sheets API.
+   - We are not performing any filtering, ordering, limiting, or offsetting in the library.
+   - We use Google Sheets formula and run it through the Google Sheets APIs.
+   - This allows bigger data size computation as well.
+   - Essentially, we are **offloading the computations into Google's servers**.
+
+
+5. Our library interfaces are designed to represent Google Sheets as a normal database.
+   - We support both KV and ROW (similar to SQL) database.
+   - We try to mimic the interfaces of a normal KV and SQL database (through a simple ORM model).
+
+
+> #### Caching
+> We are aware that our current implementation does not provide a caching mechanism yet.
+> We see this as a potential future improvement that we are going to implement in the future version.
+
+
+## Analysis
 
 ### [`Stein`](https://github.com/SteinHQ/Stein)
 
