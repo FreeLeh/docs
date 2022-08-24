@@ -10,3 +10,7 @@ To be written.
 ## Google Services
 
 1. [Google Authentication](google/authentication.md).
+
+## Alternatives Analysis
+
+1. [`FreeDB`](freedb/alternatives.md).
