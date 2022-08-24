@@ -6,13 +6,24 @@ We would like to try our best to summarise how these other alternatives work and
 > If you find there is anything inaccurate about the analysis below,
 > please feel free to let us know and we can discuss it further.
 
-## Summary
+* [`Stein`](#stein).
+* [`Serve`](#serve).
+* [`SheetDB`](#sheetdb).
+* [`sheetsql`](#sheetsql).
+* [`gooss`](#gooss).
+* [`drive-db`](#drive-db) (deprecated).
 
-Here is the `tl;dr` version. Please read further for more details.
+# Summary
+
+**Here is the `tl;dr` version**. Please read further for more details.
+
+1. Most 
 
 TODO(edocsss): need to mention that all implementations are good in terms of readability + leveraging Google Sheets capabilities.
 
-## [`Stein`](https://github.com/SteinHQ/Stein)
+---------------------
+
+### [`Stein`](https://github.com/SteinHQ/Stein)
 
 `Stein` has a backend server as a proxy.
 
@@ -38,9 +49,7 @@ A few important implementation details to take note.
    - Either return the matching rows or update/delete the matching rows.
 3. The server has a dependency on a MongoDB instance to store client information.
 
-### 
-
-## [`Serve`](https://www.withserve.com/)
+### [`Serve`](https://www.withserve.com/)
 
 `Serve` has a backend server as a proxy.
 
@@ -65,7 +74,7 @@ A few important implementation details to take note.
 3. A row can only be updated as a full row (cannot update only selected columns).
 4. If we want to update or delete a row, we must provide the row index.
 
-## [`SheetDB`](https://sheetdb.io/)
+### [`SheetDB`](https://sheetdb.io/)
 
 `SheetDB` has a backend server as a proxy.
 
@@ -94,7 +103,7 @@ A few important implementation details to take note.
    - This means when the data is cached, changes in Google Sheet (directly changed) is not going to be reflected immediately.
    - However, if the data is updated/inserted/deleted via the APIs provided by `SheetDB`, the cache will be invalidated.
 
-## [`sheetsql`](https://github.com/joway/sheetsql)
+### [`sheetsql`](https://github.com/joway/sheetsql)
 
 `sheetsql` is a TypeScript library that treats Google Sheets as a database. There is no backend server as a proxy.
 
@@ -121,7 +130,7 @@ A few important implementation details to take note.
    - This means when the data is cached, changes in Google Sheet (directly changed) is not going to be reflected immediately.
    - For write based operations (insert, update, and delete), both local and remote data will be updated.
 
-## [`gooss`](https://github.com/Stuk/gooss)
+### [`gooss`](https://github.com/Stuk/gooss)
 
 `gooss` is a JavaScript library that reads data from Google Sheets.
 
@@ -134,7 +143,7 @@ A few important implementation details to take note.
 3. It supports HTML templating using [`Underscore.js`](https://underscorejs.org/#template).
 
 
-## [`drive-db`](https://github.com/franciscop/drive-db)
+### [`drive-db`](https://github.com/franciscop/drive-db)
 
 `drive-db` is a JavaScript library that reads data from Google Sheets.
 
