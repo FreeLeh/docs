@@ -30,7 +30,9 @@ This project provides the following operations.
 A few important implementation details to take note.
 
 1. The conditions only support [equality check](https://github.com/SteinHQ/Stein/blob/master/controllers/objectDoesMatch.js) (using JavaScript `===` check).
-2. For [retrieval](https://github.com/SteinHQ/Stein/blob/master/controllers/readSheet.js), [update](https://github.com/SteinHQ/Stein/blob/master/controllers/editRow.js), and [deletion](https://github.com/SteinHQ/Stein/blob/master/controllers/deleteRow.js), the following is how it works:
+2. For [retrieval](https://github.com/SteinHQ/Stein/blob/master/controllers/readSheet.js),
+   [update](https://github.com/SteinHQ/Stein/blob/master/controllers/editRow.js), and
+   [deletion](https://github.com/SteinHQ/Stein/blob/master/controllers/deleteRow.js), the following is how it works:
    - [Retrieve all rows](https://github.com/SteinHQ/Stein/blob/master/controllers/retrieveSheet.js) from Google Sheet.
    - Perform the condition, offset, and limit operation in-memory.
    - Either return the matching rows or update/delete the matching rows.
@@ -93,6 +95,31 @@ A few important implementation details to take note.
    - However, if the data is updated/inserted/deleted via the APIs provided by `SheetDB`, the cache will be invalidated.
 
 ## [`sheetsql`](https://github.com/joway/sheetsql)
+
+`sheetsql` is a TypeScript library that treats Google Sheets as a database. There is no backend server as a proxy.
+
+This project provides the following operations.
+
+1. Retrieve rows with conditions.
+2. Insert new rows.
+3. Update rows with conditions.
+4. Delete rows with conditions.
+
+A few important implementation details to take note.
+
+1. The conditions only support [string equality check](https://github.com/joway/sheetsql/blob/master/src/storage.ts#L77).
+2. For [retrieval](https://github.com/joway/sheetsql/blob/master/src/storage.ts#L108),
+   [update](https://github.com/joway/sheetsql/blob/master/src/storage.ts#L134), and
+   [delete](https://github.com/joway/sheetsql/blob/master/src/storage.ts#L173), the following is how it works:
+   - [Retrieve all rows](https://github.com/joway/sheetsql/blob/master/src/storage.ts#L209) from Google Sheet (data is cached in-memory).
+   - Perform the [condition operation](https://github.com/joway/sheetsql/blob/master/src/storage.ts#L61) in-memory.
+   - Either return the matching rows or update/delete the matching rows.
+3. The [update](https://github.com/joway/sheetsql/blob/master/src/storage.ts#L148) and [delete](https://github.com/joway/sheetsql/blob/master/src/storage.ts#L180)
+   operations are done by calling the relevant Google Sheets API one-by-one for each row.
+   - Google Sheets API actually supports batch update and delete.
+4. The project supports [data caching](https://github.com/joway/sheetsql/blob/master/src/storage.ts#L201) via in-memory caching.
+   - This means when the data is cached, changes in Google Sheet (directly changed) is not going to be reflected immediately.
+   - For write based operations (insert, update, and delete), both local and remote data will be updated.
 
 ## [`gooss`](https://github.com/Stuk/gooss)
 
