@@ -65,6 +65,33 @@ A few important implementation details to take note.
 
 ## [`SheetDB`](https://sheetdb.io/)
 
+`SheetDB` has a backend server as a proxy.
+
+1. It only provides hosted backend option. 
+2. It provides both free and paid tier.
+
+This project provides the following operations.
+
+1. Retrieve rows with conditions, limit, offset, and order by a specific column.
+2. Retrieve keys (similar to column names).
+3. Count the number of rows.
+4. Insert new rows.
+5. Update rows with conditions and limit.
+6. Delete rows with conditions and limit.
+7. Delete duplicated rows within a sheet (the row must have the same exact content).
+8. Retrieve specific cell values.
+9. Insert new sheets.
+10. Delete sheets.
+
+A few important implementation details to take note.
+
+1. Batch update is only supported in the paid version.
+2. The project defines their own [condition format](https://docs.sheetdb.io/#get-search-in-document) for retrieval, deletion ,and update.
+3. The project supports `handlebars` to display data directly in HTML.
+4. The project supports [data caching](https://docs.sheetdb.io/#caching) inside their hosted server (paid version only).
+   - This means when the data is cached, changes in Google Sheet (directly changed) is not going to be reflected immediately.
+   - However, if the data is updated/inserted/deleted via the APIs provided by `SheetDB`, the cache will be invalidated.
+
 ## [`sheetsql`](https://github.com/joway/sheetsql)
 
 ## [`gooss`](https://github.com/Stuk/gooss)
