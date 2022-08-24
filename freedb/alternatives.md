@@ -123,4 +123,28 @@ A few important implementation details to take note.
 
 ## [`gooss`](https://github.com/Stuk/gooss)
 
+`gooss` is a JavaScript library that reads data from Google Sheets.
+
+The project only supports reading all rows and applying a client provided callback for each row.
+
+A few important implementation details to take note.
+
+1. It only supports full data retrieval.
+2. It does not support condition matching.
+3. It supports HTML templating using [`Underscore.js`](https://underscorejs.org/#template).
+
+
 ## [`drive-db`](https://github.com/franciscop/drive-db)
+
+`drive-db` is a JavaScript library that reads data from Google Sheets.
+
+The project only supports reading all rows.
+
+A few important implementation details to take note.
+
+1. It only supports full data retrieval.
+2. It does not support condition matching.
+3. The project supports [data caching](https://github.com/franciscop/drive-db/blob/master/index.js#L49) via in-memory caching.
+   - This means when the data is cached, changes in Google Sheet (directly changed) is not going to be reflected immediately.
+
+> Note that this project is already deprecated as it depends on Google Sheets v3 API.
