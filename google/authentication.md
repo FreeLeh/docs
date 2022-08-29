@@ -8,8 +8,8 @@ information related to the Google Authentication flow.
 This flow follows the normal [OAuth2 Flow](https://developers.google.com/identity/protocols/oauth2).
 Note that different FreeLeh language implementation supports different subsets of Google OAuth2 flows.
 
-1. `GoFreeLeh` only supports the server-side OAuth2 flow.
-2. `PyFreeLeh` only supports the server-side OAuth2 flow.
+1. `GoFreeDB` only supports the server-side OAuth2 flow.
+2. `PyFreeDB` only supports the server-side OAuth2 flow.
 
 ### Server Side Flow
 
@@ -38,7 +38,7 @@ During the OAuth2 flow, you will be asked to click a generated URL in the termin
 #### Golang
 
 ```go
-import "github.com/FreeLeh/GoFreeLeh/google/auth"
+import "github.com/FreeLeh/GoFreeDB/google/auth"
 
 auth, err := auth.NewOAuth2FromFile(
     "<path_to_client_secret_json>",
@@ -51,7 +51,7 @@ auth, err := auth.NewOAuth2FromFile(
 #### Python
 
 ```python
-from pyfreeleh.providers.google.auth import OAuth2GoogleAuthClient
+from pyfreedb.providers.google.auth import OAuth2GoogleAuthClient
 
 
 cached_credentials_info = {
@@ -102,7 +102,7 @@ There are 2 main information required for the service account flow:
 #### Golang
 
 ```go
-import "github.com/FreeLeh/GoFreeLeh/google/auth"
+import "github.com/FreeLeh/GoFreeDB/google/auth"
 
 // Use this if you have the service account credentials in JSON file format.
 auth, err := auth.NewServiceFromFile(
@@ -123,7 +123,7 @@ auth, err := auth.NewServiceFromRaw(
 #### Python
 
 ```python
-from pyfreeleh.providers.google.auth import ServiceAccountGoogleAuthClient
+from pyfreedb.providers.google.auth import ServiceAccountGoogleAuthClient
 
 
 # Use this if you have the service account credentials in JSON file format.
