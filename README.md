@@ -5,7 +5,7 @@ other common documentations like Google Authentication) related to FreeLeh proje
 
 ## Protocols
 
-To be written.
+1. [FreeDB](freedb/protocols.md)
 
 ## Google Services
 
