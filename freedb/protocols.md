@@ -1,22 +1,18 @@
+
 # FreeDB Protocols
 
 ## Row Store
 
+Row store is a data structure that stores records as a sequence of rows (similar to RDBMS like MySQL, PostgreSQL, etc).
+
 ### Data Structure
 
-The underlying format that we're going to use when storing the data in Google Sheet is fairly simple.
-
-The sheet will have `N + 1` columns (where `N` is the number of column that user specified in the schema) and the
+The underlying format that we're going to use to store the data in Google Sheet is fairly simple. The sheet will have `N + 1` columns where `N` is the number of column that user specified in the schema. The
 extra 1 column will be used to store `_rid` metadata (which will be explained later).
 
-In the first row, we have the the column name for each column. The first column will be the `_rid` metadata column
-(which also have `_rid` column name) and will be followed by the first column in the data schema, then followed by the
-second one, and so on.
+The first row will be used to store the column name of each columns. The first column will be the `_rid` metadata column (which also have `_rid` column name) and will be followed by the first column in the data schema, then followed by the second one, and so on. The next rows (second row and rows below that) will be used to store the records.
 
-The next rows (second row and rows below that) will be used to store the rows. We will store value of the `i`-th column
-on the data schema of the each row in the `i+1` column.
-
-Suppose the user schema looks like this (written in PyFreeDB model):
+Suppose the user schema looks like this (written in `PyFreeDB` model):
 ```
 class Person(models.Model):
     name = models.StringField() # 1st column
@@ -46,26 +42,37 @@ Then the actual data that we store in Google Sheet would look like this:
 `_rid` column will be used to tell the index of a row. This metadata will make our Google Sheet Formula simpler
 so that we can utilize [Google Visualization API][GVizAPI] for our needs.
 
+⚠️ Even though `_rid` can be used as the row identifier (because `_rid` is unique between each rows), we recommend the client to implement their own row identifier mechanism such as [UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier) or [Snowflake](https://en.wikipedia.org/wiki/Snowflake_ID) because we will not guarantee that `_rid` will not be reused out-of-the box (to ensure the `_rid` is not reused, you need to implement soft-delete mechanism by your own).
+
+Consider this scenario:
+1. Client insert Row A to the store, which will have `_rid=2`.
+2. Client deletes Row A from the store.
+3. Client Insert Row B to the store, which will reuse the same `_rid` as A i.e. its `_rid` will be equal to `2`.
+
+We did not expose this field by default because if the client didn't aware of this behaviour it can cause various bugs because of the invalid/dangling IDs.
+
 ### Operations
 
 #### Insert
 
-Inserting new row into the database.
+Inserts new row into the database.  The operation method should expect these parameters:
+| Parameter Name | Required | Remarks                                                  |
+| -------------- | -------- | -------------------------------------------------------- |
+| `rows`         | Yes      | List of row object that will be inserted into the store. |
 
-Call [spreadsheets.values.append](https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values/append)
-API with these following parameters:
 
-| parameter name            | value                      |
-| ------------------------- | -------------------------- |
-| spreadsheetId             | `<current_spreadsheet_id>` |
-| range                     | `<data_range>`             |
-| responseValueRenderOption | `FORMATTED_VALUE`          |
-| valueInputOption          | `USER_ENTERED`             |
-| includeValuesInResponse   | `true`                     |
-| insertDataOption          | `OVERWRITE`                |
+Call [spreadsheets.values.append](https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values/append) API with these following parameters:
 
-Replace the `<current_spreadsheet_id>` with the Google Spreadsheet ID that we currently working on and `<data_range>`
-with the range where the data lives in [A1 notation format][A1Notation]. It's recommended to select the entire column
+| Parameter Name              | Value                      |
+| --------------------------- | -------------------------- |
+| `spreadsheetId`             | `<current_spreadsheet_id>` |
+| `range`                     | `<data_range>`             |
+| `responseValueRenderOption` | `FORMATTED_VALUE`          |
+| `valueInputOption`          | `USER_ENTERED`             |
+| `includeValuesInResponse`   | `true`                     |
+| `insertDataOption`          | `OVERWRITE`                |
+
+Replace the `<current_spreadsheet_id>` with the Google Spreadsheet ID that we're going to operate on and `<data_range>` with the range where the data lives in [A1 notation format][A1Notation]. It's recommended to select the entire column
 for the `<data_range>`, e.g. suppose we have 5 columns (including `_rid` metadata column) in `Sheet1` we should
 use `Sheet1!A:E` to select the entire rows.
 
@@ -95,13 +102,30 @@ then the `values` would look like this:
 
 #### Select
 
-Returns the number of rows that matched with the given condition. Optionally user can specify the condition, limit,
-and offset.
+Returns the number of rows that matched with the given condition.
 
-We will utilise the [GVizAPI][GVizAPI] to return the matching rows from the spreadsheet by running the query below:
-`SELECT <column-1>, <column-2>, ..., <column-n> WHERE A IS NOT NULL [AND <condition>] [ORDER BY <ordering-1>, ..., <ordering-n>] [LIMIT <limit>] [OFFSET <offset>]`
+The operation method should expect these parameters:
+| Parameter Name | Required | Remarks                                                                                                                                                                 |
+| -------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `columns`      | No       | List of columns that we will fetch. Defaults to return all columns if not provided.                                                                                     |
+| `conditions`   | No       | Condition that must be true in order for the row to be returned in [Google Sheet Query Language][QueryLanguage] format. Defaults to return all columns if not provided. |
+| `limit`        | No       | Impose limit of number of rows that will be returned. Defaults to no limit if not provided.                                                                             |
+| `offset`       | No       | Skips given number of first rows from being returned. Defaults to not skip any rows if not provided.                                                                    |
+| `order_by`     | No       | Sorts the row based on the given column values in either ascending or descending order. Defaults to not sort the rows.                                                  |
+
+We will utilise the [GViz API][GVizAPI] to return the matching rows from the spreadsheet by running the Google Query below:
+
+`SELECT <column-1>, <column-2>, ..., <column-n> WHERE A IS NOT NULL [AND <condition>] [ORDER BY <ordering-1>, <ordering-2>, ..., <ordering-n>] [LIMIT <limit>] [OFFSET <offset>]`
+
+Note: Query inside square bracket denotes an optional query, only need to be provided if necessary.
+
+- Replace the `<column-1>, <column-2>, ..., <column-n>` based on the columns that are specified in the `columns` parameter.
+- If the client provided the `conditions` parameter, replace  `<condition>` with the actual client's condition, e.g. suppose the `conditions` is `"B > 5"` then the `WHERE` clause will be equal to `WHERE A IS NOT NULL AND B > 5`.
+- If the client provided `limit` or `offset` parameter,  replace `<limit>` and `<offset>` with the given value respectively.
+- If the client provided `order_by` parameter, replace the `<ordering-1>, <ordering-2>, ..., <ordering-n>` with the value given by the client, e.g. suppose the `order_by` parameter is `A ASC, B DESC` then the `ORDER BY` clause will be equal to `ORDER BY A ASC, B DESC`.
 
 On how to use GViz API can refer to the appendix below.
+
 #### Update
 
 To get the list of affected rows, first we need to call GViz API with the following query:
@@ -169,9 +193,10 @@ that comes after the last `}` character, after we discard those characters we wi
 Inside of the row value object you will find `c` and `f` key, where `c` corresponds to the formatted value while `f`
 corresponds to the raw value.
 
-## KV Store
+## Key-Value (KV) Store
 
-We will build KV Store on top of Row Store.
+KV Store is a data structure that can map a key to a value (similar to a hash map).
+
 
 The row data schema looks like this (in PyFreeDB model):
 ```
@@ -199,4 +224,5 @@ for append-only mode, delete can be done by calling row_store.insert(Entry(key=k
 
 
 [GVizAPI]: https://developers.google.com/chart/interactive/docs/reference
-[A1Notation] : https://developers.google.com/sheets/api/guides/concepts
+[A1Notation]: https://developers.google.com/sheets/api/guides/concepts
+[QueryLanguage]: https://developers.google.com/chart/interactive/docs/querylanguage
