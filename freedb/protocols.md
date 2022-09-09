@@ -128,20 +128,52 @@ On how to use GViz API can refer to the appendix below.
 
 #### Update
 
+Update selected rows with the given value.
+
+The operation method should expects these parameters:
+| Parameter Name | Required | Remarks                                                                                                                                                                |
+| -------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `value`        | Yes      | the value that we're going to replace the rows with.                                                                                                                   |
+| `conditions`   | No       | Condition that must be true in order for the row to be updated in [Google Sheet Query Language][QueryLanguage] format. Defaults to update all columns if not provided. |
+
 To get the list of affected rows, first we need to call GViz API with the following query:
 `SELECT A WHERE A IS NOT NULL [AND <condition>]`
 
-After we get the list of indices that we need to update, call `spreadsheets.values.batchUpdate` to update all the affected rows.
+Note: `A` column is referring to the `_rid` column (which contains the row's index).
+
+After we get the list of indices that we need to update, call `spreadsheets.values.batchUpdate` to update all the affected rows with the given `value`.
+
 #### Delete
 
+Delete rows that matched with the given conditions.
+
+The operation method should expects these parameters:
+
+| Parameter Name | Required | Remarks                                                                                                                                                                |
+| -------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `conditions`   | No       | Condition that must be true in order for the row to be deleted in [Google Sheet Query Language][QueryLanguage] format. Defaults to delete all columns if not provided. |
+
+
 To get the list of affected rows, first we need to call GViz API with the following query:
-`SELECT A WHERE A IS NOT NULL [AND <condition>]`
+`SELECT A WHERE A IS NOT NULL [AND <conditions>]`
+
+Note: `A` column is referring to the `_rid` column (which contains the row's index).
 
 After we get list of row indices that we need to delete, call `spreadsheets.values.clear` API to remove all the affected rows.
+
 #### Count
 
-Return the number of rows that matched with the given condition.
-`SELECT COUNT(A) WHERE A IS NOT NULL [AND <condition>]`
+Return the number of rows that matched with the given conditions.
+
+The operation method should expects these parameters:
+
+| Parameter Name | Required | Remarks                                                                                                                                                               |
+| -------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `conditions`   | No       | Condition that must be true in order for the row to be counted in [Google Sheet Query Language][QueryLanguage] format. Defaults to count all columns if not provided. |
+
+To get the the number of rows, we need to call GViz API with the following query:
+`SELECT COUNT(A) WHERE A IS NOT NULL [AND <conditions>]`
+
 ### Appendix
 
 #### Calling GViz API
@@ -197,8 +229,7 @@ corresponds to the raw value.
 
 KV Store is a data structure that can map a key to a value (similar to a hash map).
 
-
-The row data schema looks like this (in PyFreeDB model):
+We will build KV Store on top of our Row Store. The row data schema for each record looks like this (in PyFreeDB model):
 ```
 class Entry(models.Model):
     key = models.StringField()
@@ -208,19 +239,48 @@ class Entry(models.Model):
 
 #### Set
 
-For both Default and Append Only mode, we can insert the data using row_store.insert(Entry(key=key, value=value)).
+Set the value of a `key` to the given `value`.
+
+The operation method should expects these parameters:
+
+| Parameter Name | Required | Remarks                       |
+| -------------- | -------- | ----------------------------- |
+| `key`          | Yes      | Record's key                  |
+| `value`        | Yes      | The value that we want to set |
+
+
+For both Default and Append Only mode, simply insert `Entry(key=<key>, value=<value>)` to the row store.
+
 #### Get
 
-For Default Mode, get can be done by calling row_store.select().where("key = ?", key).limit(1).execute()
+Get the value of a `key` from the store.
 
-For Append-Only mode, get can be done by calling row_store.select().where("key = ?", key).order_by(Ordering.DESC("_rid")).limit(1).execute()
-If the result's value is "" treat it as entry not exists.
+The operation method should expects these parameters:
+
+| Parameter Name | Required | Remarks                          |
+| -------------- | -------- | -------------------------------- |
+| `key`          | Yes      | Record's key that we want to get |
+
+1. For Default Mode, `Get` can be done by selecting rows that matched `key=<key>` condition and applying `limit=1`.
+	- In `PyFreeDB` syntax, it's equivalent to: `row_store.select().where("key = ?", <key>).limit(1).execute()`.
+
+2. For Append-Only mode, `Get` can be done by selecting rows that matched `key=<key>` sorted by `_rid` value in descending manner and applying `limit=1`. Note that if we get `value=""` we must treat it as `KeyNotFound`.
+	- In `PyFreeDB` syntax, it's equivalent to: `row_store.select().where("key = ?", key).order_by(Ordering.DESC("_rid")).limit(1).execute()`.
+
 
 #### Delete
 
-For degault mode, delete can be done by calling row_store.delete().where("key = ?", key).execute()
+Deletes the records of associated with the given `key` from the store.
 
-for append-only mode, delete can be done by calling row_store.insert(Entry(key=key, value="")).execute()
+The operation method should expects these parameters:
+| Parameter Name | Required | Remarks                             |
+| -------------- | -------- | ----------------------------------- |
+| `key`          | Yes      | Record's key that we want to delete |
+
+1. For default mode, `Delete` can be done by deleting row that matched with `key=<key>`.
+	- In `PyFreeDB` syntax, it's equivalent to `row_store.delete().where("key = ?", key).execute()`.
+2. For Append-Only mode, `Delete` can be done by inserting `Entry(key=<key>, value="")` to the store.
+	- In `PyFreeDB` syntax, it's equivalent to `row_store.insert(Entry(key=key, value="")).execute()`
 
 
 [GVizAPI]: https://developers.google.com/chart/interactive/docs/reference
