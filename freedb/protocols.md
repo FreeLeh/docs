@@ -1,8 +1,202 @@
 # FreeDB Protocols
 
-We are going to explain all the details required to implement `FreeDB` in other programming languages.
-The goal is to allow people to contribute `FreeDB` implementation in other languages.
+## Row Store
 
-> As of 31 August 2022, this document still acts as a placeholder so it can be referred to from other documents.
-> We are still prioritising other things.
-> We will revisit and write the details as soon as possible.
+### Data Structure
+
+The underlying format that we're going to use when storing the data in Google Sheet is fairly simple.
+
+The sheet will have `N + 1` columns (where `N` is the number of column that user specified in the schema) and the
+extra 1 column will be used to store `_rid` metadata (which will be explained later).
+
+In the first row, we have the the column name for each column. The first column will be the `_rid` metadata column
+(which also have `_rid` column name) and will be followed by the first column in the data schema, then followed by the
+second one, and so on.
+
+The next rows (second row and rows below that) will be used to store the rows. We will store value of the `i`-th column
+on the data schema of the each row in the `i+1` column.
+
+Suppose the user schema looks like this (written in PyFreeDB model):
+```
+class Person(models.Model):
+    name = models.StringField() # 1st column
+    age = models.IntegerField() # 2nd column
+```
+
+and we have data below:
+```
+[
+    Person(name="A", age=1), # 1st row
+    Person(name="B", age=2), # 2nd row
+    Person(name="C", age=3), # 3rd row
+    Person(name="D", age=4)  # 4th row
+]
+```
+
+Then the actual data that we store in Google Sheet would look like this:
+| _rid | name | age |
+| ---- | ---- | --- |
+| 1    | A    | 1   |
+| 2    | B    | 2   |
+| 3    | C    | 3   |
+| 4    | D    | 4   |
+
+#### About `_rid` Metadata
+
+`_rid` column will be used to tell the index of a row. This metadata will make our Google Sheet Formula simpler
+so that we can utilize [Google Visualization API][GVizAPI] for our needs.
+
+### Operations
+
+#### Insert
+
+Inserting new row into the database.
+
+Call [spreadsheets.values.append](https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values/append)
+API with these following parameters:
+
+| parameter name            | value                      |
+| ------------------------- | -------------------------- |
+| spreadsheetId             | `<current_spreadsheet_id>` |
+| range                     | `<data_range>`             |
+| responseValueRenderOption | `FORMATTED_VALUE`          |
+| valueInputOption          | `USER_ENTERED`             |
+| includeValuesInResponse   | `true`                     |
+| insertDataOption          | `OVERWRITE`                |
+
+Replace the `<current_spreadsheet_id>` with the Google Spreadsheet ID that we currently working on and `<data_range>`
+with the range where the data lives in [A1 notation format][A1Notation]. It's recommended to select the entire column
+for the `<data_range>`, e.g. suppose we have 5 columns (including `_rid` metadata column) in `Sheet1` we should
+use `Sheet1!A:E` to select the entire rows.
+
+To construct the value of `values` parameter (inside the request's body), convert each rows into an array where the
+1st value (value of the `_rid` metadata column) equals to `"=ROW()"` and `i`-th (1-based index) value contains the
+value of `i`-th column of the current row.
+
+Suppose we want to insert the data below:
+```
+[
+    Person(name="A", age=1), # 1st row
+    Person(name="B", age=2), # 2nd row
+    Person(name="C", age=3), # 3rd row
+    Person(name="D", age=4)  # 4th row
+]
+```
+
+then the `values` would look like this:
+```
+"values": [
+    ["=ROW()", "A", 1],
+    ["=ROW()", "B", 2],
+    ["=ROW()", "C", 3],
+    ["=ROW()", "D", 4],
+]
+```
+
+#### Select
+
+Returns the number of rows that matched with the given condition. Optionally user can specify the condition, limit,
+and offset.
+
+We will utilise the [GVizAPI][GVizAPI] to return the matching rows from the spreadsheet by running the query below:
+`SELECT <column-1>, <column-2>, ..., <column-n> WHERE A IS NOT NULL [AND <condition>] [ORDER BY <ordering-1>, ..., <ordering-n>] [LIMIT <limit>] [OFFSET <offset>]`
+
+On how to use GViz API can refer to the appendix below.
+#### Update
+
+To get the list of affected rows, first we need to call GViz API with the following query:
+`SELECT A WHERE A IS NOT NULL [AND <condition>]`
+
+After we get the list of indices that we need to update, call `spreadsheets.values.batchUpdate` to update all the affected rows.
+#### Delete
+
+To get the list of affected rows, first we need to call GViz API with the following query:
+`SELECT A WHERE A IS NOT NULL [AND <condition>]`
+
+After we get list of row indices that we need to delete, call `spreadsheets.values.clear` API to remove all the affected rows.
+#### Count
+
+Return the number of rows that matched with the given condition.
+`SELECT COUNT(A) WHERE A IS NOT NULL [AND <condition>]`
+### Appendix
+
+#### Calling GViz API
+
+To call the GViz API create a `GET` request to `https://docs.google.com/spreadsheets/d/<spreadsheet_id>/gviz/tq`
+(replace `<spreadsheet_id>` with the spreadsheet ID that we're going to operate on) with these following query
+parameters and headers:
+
+| Parameter Name | Value                     |
+| -------------- | ------------------------- |
+| `sheet`        | `<sheet_name>`            |
+| `tqx`          | `responseHandler:freeleh` |
+| `tq`           | `<gsheet_query>`          |
+| `headers`      | `1`                       |
+
+| Header Name   | Value                 |
+| ------------- | --------------------- |
+| Content-Type  | `application/json`    |
+| Authorization | `Bearer <auth_token>` |
+
+Replace `<sheet_name>` with the sheet name that we're going to operate on, `<gsheet_query>` with the query that we
+want to run, and `<auth_token>` with the token that you use to call the Google Sheet V4 API.
+
+For example suppose you want to run the "SELECT A" query on `Sheet1` of spreadsheet with ID `ABCD` with `TOKEN` as the
+authorization token the actual request will look like this:
+```
+GET /spreadsheets/d/ABCD/gviz/tq?sheet=Sheet1&tqx=responseHandler:freeleh&tq=SELECT%20A&headers=1 HTTP/2
+Host: docs.google.com
+Content-Type: application/json
+Authorization: Bearer TOKEN
+```
+
+If everything works well, you will get response like this:
+```
+/*O_o*/
+freeleh({"version":"0.6","reqId":"0","status":"ok","sig":"880399325","table":{"cols":[{"id":"B","label":"name","type":"string"},{"id":"C","label":"age","type":"number","pattern":"General"},{"id":"D","label":"date of birth","type":"date","pattern":"m-d-yyyy"}],"rows":[{"c":[{"v":"name1"},{"v":10.0,"f":"10"},{"v":"Date(1999,0,1)","f":"1-1-1999"}]},{"c":[{"v":"name2"},{"v":11.0,"f":"11"},{"v":"Date(2000,0,1)","f":"1-1-2000"}]},{"c":[{"v":"name3"},{"v":12.0,"f":"12"},{"v":"Date(2001,0,1)","f":"1-1-2001"}]}],"parsedNumHeaders":0}});
+```
+
+Before we can process the response, we need to discard any character that comes before the first `{` character and those
+that comes after the last `}` character, after we discard those characters we will get a valid JSON string.
+
+```
+{"version":"0.6","reqId":"0","status":"ok","sig":"880399325","table":{"cols":[{"id":"B","label":"name","type":"string"},{"id":"C","label":"age","type":"number","pattern":"General"},{"id":"D","label":"date of birth","type":"date","pattern":"m-d-yyyy"}],"rows":[{"c":[{"v":"name1"},{"v":10.0,"f":"10"},{"v":"Date(1999,0,1)","f":"1-1-1999"}]},{"c":[{"v":"name2"},{"v":11.0,"f":"11"},{"v":"Date(2000,0,1)","f":"1-1-2000"}]},{"c":[{"v":"name3"},{"v":12.0,"f":"12"},{"v":"Date(2001,0,1)","f":"1-1-2001"}]}],"parsedNumHeaders":0}}
+```
+
+`.table.cols` contains the list of column info object that we included in the `SELECT` clause with in the same order of appearance.
+
+`.table.rows` contains the list of row object. The value of a i-th row can be accessed via `.table.rows[i].c` key.
+Inside of the row value object you will find `c` and `f` key, where `c` corresponds to the formatted value while `f`
+corresponds to the raw value.
+
+## KV Store
+
+We will build KV Store on top of Row Store.
+
+The row data schema looks like this (in PyFreeDB model):
+```
+class Entry(models.Model):
+    key = models.StringField()
+    value = models.StringField()
+```
+### Operations
+
+#### Set
+
+For both Default and Append Only mode, we can insert the data using row_store.insert(Entry(key=key, value=value)).
+#### Get
+
+For Default Mode, get can be done by calling row_store.select().where("key = ?", key).limit(1).execute()
+
+For Append-Only mode, get can be done by calling row_store.select().where("key = ?", key).order_by(Ordering.DESC("_rid")).limit(1).execute()
+If the result's value is "" treat it as entry not exists.
+
+#### Delete
+
+For degault mode, delete can be done by calling row_store.delete().where("key = ?", key).execute()
+
+for append-only mode, delete can be done by calling row_store.insert(Entry(key=key, value="")).execute()
+
+
+[GVizAPI]: https://developers.google.com/chart/interactive/docs/reference
+[A1Notation] : https://developers.google.com/sheets/api/guides/concepts
