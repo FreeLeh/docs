@@ -172,8 +172,8 @@ To get the list of affected rows, we need to call GViz API with the following qu
 
 Note: `A` column is referring to the `_rid` column (which contains the row's index).
 
-After we get the list of row indices that we need to delete, call [spreadsheets.values.clear][ClearAPI] API to remove
-all the affected rows.
+After we get the list of row indices that we need to delete (by reading the value of `_rid` column returned by previous
+query), call [spreadsheets.values.clear][ClearAPI] API to remove all the affected rows.
 
 #### Count
 
