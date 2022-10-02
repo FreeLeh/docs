@@ -114,13 +114,13 @@ then the `values` would look like this:
 Returns the number of rows that matched the given condition.
 
 The operation method should expect these parameters:
-| Parameter Name | Required | Remarks                                                                                                                                                        |
-| -------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `columns`      | No       | List of columns that we will fetch. Defaults to return all columns if not provided.                                                                            |
-| `conditions`   | No       | Condition that must be true for the row to be returned in [Google Sheet Query Language][QueryLanguage] format. Defaults to return all columns if not provided. |
-| `limit`        | No       | Impose a limit on the number of rows that will be returned. Defaults to no limit if not provided.                                                              |
-| `offset`       | No       | Skips the given number of first rows from being returned. Defaults to not skip any rows if not provided.                                                       |
-| `order_by`     | No       | Sorts the row based on the given column values in either ascending or descending order. Defaults to not sort the rows.                                         |
+| Parameter Name | Required | Remarks                                                                                                                                                     |
+| -------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `columns`      | No       | List of columns that we will fetch. Defaults to return all columns if not provided.                                                                         |
+| `conditions`   | No       | Condition that must be true for the row to be returned in [Google Sheet Query Language][QueryLanguage] format. Defaults to return all rows if not provided. |
+| `limit`        | No       | Impose a limit on the number of rows that will be returned. Defaults to no limit if not provided.                                                           |
+| `offset`       | No       | Skips the given number of first rows from being returned. Defaults to not skip any rows if not provided.                                                    |
+| `order_by`     | No       | Sorts the row based on the given column values in either ascending or descending order. Defaults to not sort the rows.                                      |
 
 We will utilise the [GViz API][GVizAPI] to return the matching rows from the spreadsheet by running the Google Query below:
 
@@ -143,10 +143,10 @@ On how to use GViz API can refer to the appendix below.
 Update selected rows with the given value.
 
 The operation method should expect these parameters:
-| Parameter Name | Required | Remarks                                                                                                                                                                |
-| -------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `value`        | Yes      | the value that we're going to replace the rows with.                                                                                                                   |
-| `conditions`   | No       | Condition that must be true in order for the row to be updated in [Google Sheet Query Language][QueryLanguage] format. Defaults to update all columns if not provided. |
+| Parameter Name | Required | Remarks                                                                                                                                                             |
+| -------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `value`        | Yes      | A map of column to the updated value that we're going to replace the rows with.                                                                                     |
+| `conditions`   | No       | Condition that must be true in order for the row to be updated in [Google Sheet Query Language][QueryLanguage] format. Defaults to update all rows if not provided. |
 
 To get the list of affected rows, we need to call GViz API with the following query:
 `SELECT A WHERE A IS NOT NULL [AND <condition>]`
@@ -154,7 +154,10 @@ To get the list of affected rows, we need to call GViz API with the following qu
 Note: `A` column is referring to the `_rid` column (which contains the row's index).
 
 After we get the list of indices that we need to update, call [spreadsheets.values.batchUpdate][BatchUpdateAPI] to
-update all the affected rows with the given `value`.
+update all the affected rows with the given `value`. Note that we should only update the columns that is specified in
+the `value` (suppose `value` is `{"col1": "1", "col3": "2"}` and in the spreadsheet we have 3 columns `col1`, `col2`
+and `col3`, we should not touch the `col2`), this means that you need to create 2 update query to update `col1` and
+`col3` for each affected rows when calling the API.
 
 #### Delete
 
@@ -162,9 +165,9 @@ Delete rows that matched the given conditions.
 
 The operation method should expect these parameters:
 
-| Parameter Name | Required | Remarks                                                                                                                                                                |
-| -------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `conditions`   | No       | Condition that must be true in order for the row to be deleted in [Google Sheet Query Language][QueryLanguage] format. Defaults to delete all columns if not provided. |
+| Parameter Name | Required | Remarks                                                                                                                                                             |
+| -------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `conditions`   | No       | Condition that must be true in order for the row to be deleted in [Google Sheet Query Language][QueryLanguage] format. Defaults to delete all rows if not provided. |
 
 
 To get the list of affected rows, we need to call GViz API with the following query:
@@ -181,9 +184,9 @@ Return the number of rows that matched the given conditions.
 
 The operation method should expect these parameters:
 
-| Parameter Name | Required | Remarks                                                                                                                                                               |
-| -------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `conditions`   | No       | Condition that must be true in order for the row to be counted in [Google Sheet Query Language][QueryLanguage] format. Defaults to count all columns if not provided. |
+| Parameter Name | Required | Remarks                                                                                                                                                            |
+| -------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `conditions`   | No       | Condition that must be true in order for the row to be counted in [Google Sheet Query Language][QueryLanguage] format. Defaults to count all rows if not provided. |
 
 To get the number of rows, we need to call GViz API with the following query:
 `SELECT COUNT(A) WHERE A IS NOT NULL [AND <conditions>]`
