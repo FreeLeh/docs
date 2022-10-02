@@ -55,7 +55,7 @@ Consider this scenario:
 2. Client deletes Row A from the store.
 3. Client Insert Row B to the store, which will reuse the same `_rid` as A i.e. B's `_rid` will be equal to `2`.
 
-We did not expose this field by default because if the client didn't aware of this behavior it can cause various bugs
+We did not expose this field by default because if the client is not aware of this behavior it can cause various bugs
 because of the invalid/dangling IDs.
 
 ### Operations
@@ -237,11 +237,16 @@ those that come after the last `}` character, after we discard those characters 
 of appearance.
 
 `.table.rows` contain the list of row objects. The value of a `i`-th row can be accessed via `.table.rows[i].c` key.
-Inside of the row value object you will find `c` and `f` key, where `c` corresponds to the formatted value while `f`
-corresponds to the raw value.
+Inside of the row value object you will find `v` and `f` key, where `v` corresponds to the raw value while `f`
+corresponds to the formatted value (the value that user can see from the Google Sheet GUI).
 
-To parse the value, use `f` value if possible and fallback to `v` value and convert the value to your language native
-type.
+To parse the value, use the `v` value of each cell and convert the value to your language native type.
+
+| Data type | `v` Value Example                 | Recommendation                                                                                     |
+| --------- | --------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Bool      | `"true"` or `"false"`             | Treat `"true"` as truthy boolean value and `"false"` as falsy.                                     |
+| Number    | `"1234"`, `"1.4"`, `"1.234573E8"` | Parse them as double-precision floating point value (and then convert to other type if necessary). |
+| String    | `"value"`                         | Parse them as string.                                                                              |
 
 ## Key-Value (KV) Store
 
