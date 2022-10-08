@@ -1,6 +1,10 @@
 
 # FreeDB Protocols
 
+This document contains the detail on the internal workings used in FreeDB libraries so you can port FreeDB into another
+programming language.  It's strongly recommended to follow the recommendations (unless you have a very good reason
+to not follow them) to keep the procedure as uniform as possible to make the maintenance easier in the future.
+
 ## Row Store
 
 Row Store is a data structure that stores records as a sequence of rows (similar to RDBMS like MySQL, PostgreSQL, etc).
@@ -81,8 +85,8 @@ API with the following parameters:
 | `insertDataOption`          | `OVERWRITE`                |
 
 Replace the `<current_spreadsheet_id>` with the Google Spreadsheet ID that we're going to operate on and `<data_range>`
-with the range where the data lives in [A1 notation format][A1Notation]. It's recommended to select the entire column
-for the `<data_range>`, e.g. suppose we have 5 columns (including `_rid` metadata column) in `Sheet1` we should
+with the range where the data lives in [A1 notation format][A1Notation]. It's strongly recommended to select the entire
+column for the `<data_range>`, e.g. suppose we have 5 columns (including `_rid` metadata column) in `Sheet1` we should
 use `Sheet1!A:E` to select the entire rows.
 
 To construct the value of `values` parameter (inside the request's body), convert each row into an array where the
