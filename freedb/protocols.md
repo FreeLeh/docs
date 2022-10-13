@@ -44,9 +44,12 @@ Then the actual data that we store in Google Sheet would look like this:
 | 3    | C    | 3   |
 | 4    | D    | 4   |
 
-#### Field Mapping Abstraction
+#### Field to Google Sheet Column Mapping Layer
 
+The library should have a layer to abstract the underlying Google Sheet column so client can use a more meaningful
+variable names (e.g. `name`, `age`, `dob`) instead of using Google Sheet column ID directly (e.g. `A`, `B`, and `C`).
 
+The library should handle the field mapping to the underlying Google Sheet column when calling Google Sheet APIs.
 
 #### About `_rid` Metadata
 
@@ -134,15 +137,17 @@ We will utilise the [GViz API][GVizAPI] to return the matching rows from the spr
 
 `SELECT <column-1>, <column-2>, ..., <column-n> WHERE A IS NOT NULL [AND <condition>] [ORDER BY <ordering-1>, <ordering-2>, ..., <ordering-n>] [LIMIT <limit>] [OFFSET <offset>]`
 
-Note: Query inside square bracket denotes an optional query, only need to be provided if necessary.
+Note:
+- Query inside square bracket denotes an optional query, only need to be provided if necessary.
 
-- Replace the `<column-1>, <column-2>, ..., <column-n>` based on the columns that are specified in the `columns` parameter.
-- If the client provided the `conditions` parameter, replace  `<condition>` with the actual client's condition, e.g.
-  suppose the `conditions` is `"B > 5"` then the `WHERE` clause will be equal to `WHERE A IS NOT NULL AND B > 5`.
-- If the client provided `limit` or `offset` parameter,  replace `<limit>` and `<offset>` with the given value respectively.
-- If the client provided `order_by` parameter, replace the `<ordering-1>, <ordering-2>, ..., <ordering-n>` with the
-  value given by the client, e.g. suppose the `order_by` parameter is `A ASC, B DESC` then the `ORDER BY` clause will
-  be equal to `ORDER BY A ASC, B DESC`.
+Suppose the client calls Select query with following parameters (using `Person` schema above):
+- `conditions`: `age > 5`
+- `order_by`: `[["age", "DESC"], ["name", "ASC"]]`
+
+the actual query that we will run looks like this:
+```
+SELECT B, C WHERE A IS NOT NULL AND C > 5 ORDER BY C DESC, B ASC
+```
 
 On how to use GViz API can refer to the appendix below.
 
@@ -159,7 +164,8 @@ The operation method should expect these parameters:
 To get the list of affected rows, we need to call GViz API with the following query:
 `SELECT A WHERE A IS NOT NULL [AND <condition>]`
 
-Note: `A` column is referring to the `_rid` column (which contains the row's index).
+Note:
+- `A` column is referring to the `_rid` column (which contains the row's index).
 
 After we get the list of indices that we need to update, call [spreadsheets.values.batchUpdate][BatchUpdateAPI] to
 update all the affected rows with the given `value`. Note that we should only update the columns that is specified in
