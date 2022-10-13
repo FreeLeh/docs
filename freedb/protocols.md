@@ -44,12 +44,16 @@ Then the actual data that we store in Google Sheet would look like this:
 | 3    | C    | 3   |
 | 4    | D    | 4   |
 
+#### Field Mapping Abstraction
+
+
+
 #### About `_rid` Metadata
 
 `_rid` column will be used to tell the index of a row. This metadata will make our Google Sheet Formula simpler
 so that we can utilize [Google Visualization API][GVizAPI] for our needs.
 
-⚠️ Even though `_rid` can be used as the row identifier (because `_rid` is unique between each row), we recommend the
+> ⚠️ Even though `_rid` can be used as the row identifier (because `_rid` is unique between each row), we recommend the
 client to implement their own row identifier mechanism such as [UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier)
 or [Snowflake](https://en.wikipedia.org/wiki/Snowflake_ID) because we will not guarantee that `_rid` will not be
 reused out-of-the-box (to ensure the `_rid` is not reused, you need to implement soft-delete mechanism by your own).
